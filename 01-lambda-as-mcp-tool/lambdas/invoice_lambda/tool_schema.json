@@ -1,0 +1,56 @@
+[
+    {
+        "name": "get_invoice_by_id",
+        "description": "Look up a single invoice by its exact invoice ID. Use when the user gives or asks about a specific invoice number.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "invoice_id": {
+                    "type": "string",
+                    "description": "The exact invoice ID, e.g. 'INV-1001'."
+                }
+            },
+            "required": [
+                "invoice_id"
+            ]
+        }
+    },
+    {
+        "name": "get_invoices_by_customer",
+        "description": "List all invoices for a named customer and return the total amount. Use for questions like 'what does Acme owe us' or 'show Acme invoices in March'. Optionally filter by an inclusive invoice date range (YYYY-MM-DD).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "customer_name": {
+                    "type": "string",
+                    "description": "Exact customer name as stored, e.g. 'Acme Corp'."
+                },
+                "start_date": {
+                    "type": "string",
+                    "description": "Inclusive start date in YYYY-MM-DD format. Optional."
+                },
+                "end_date": {
+                    "type": "string",
+                    "description": "Inclusive end date in YYYY-MM-DD format. Optional."
+                }
+            },
+            "required": [
+                "customer_name"
+            ]
+        }
+    },
+    {
+        "name": "list_recent_invoices",
+        "description": "Return the most recent invoices across all customers, newest first. Use for 'show the latest invoices' or to get an overview when no customer is specified.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of invoices to return. Defaults to 10."
+                }
+            },
+            "required": []
+        }
+    }
+]
