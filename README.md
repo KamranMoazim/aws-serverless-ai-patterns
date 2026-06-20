@@ -1,6 +1,6 @@
 # AWS Serverless & AI Patterns
 
-Small, production-shaped reference patterns for building serverless and AI systems on AWS — each one a self-contained, deployable [AWS CDK](https://docs.aws.amazon.com/cdk/) project with a walkthrough README.
+Small, production-shaped reference patterns for building serverless and AI systems on AWS - each one a self-contained, deployable [AWS CDK](https://docs.aws.amazon.com/cdk/) project with a walkthrough README.
 
 Every pattern is the *smallest honest version* of a real architecture: minimal code, managed services, zero idle cost. Deploy it, read it, lift the parts you need.
 
@@ -27,9 +27,9 @@ Requirements: Node.js + AWS CDK CLI (`npm install -g aws-cdk`), Python 3.13, AWS
 
 ## License
 
-[MIT-0](./LICENSE) — use it however you like, no attribution required.
+[MIT-0](./LICENSE) - use it however you like, no attribution required.
 
 ## Author
 
-Built by Kamran Moazim — AWS-native serverless & AI engineering.
+Built by Kamran Moazim - AWS-native serverless & AI engineering.
 [X / @KamranMoazim](https://x.com/KamranMoazim) · [LinkedIn](https://www.linkedin.com/)

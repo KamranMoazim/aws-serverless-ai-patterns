@@ -118,7 +118,7 @@ class LambdaAsMcpToolStack(Stack):
             ),
         )
 
-        # Public client — browser / Claude.ai (authorization code grant)
+        # Public client - browser / Claude.ai (authorization code grant)
         public_client = user_pool.add_client(
             "McpPublicClient",
             user_pool_client_name="mcp-public",
@@ -139,7 +139,7 @@ class LambdaAsMcpToolStack(Stack):
             ),
         )
 
-        # M2M client — easiest path for curl / server-to-server testing
+        # M2M client - easiest path for curl / server-to-server testing
         m2m_client = user_pool.add_client(
             "McpM2MClient",
             user_pool_client_name="mcp-m2m",
