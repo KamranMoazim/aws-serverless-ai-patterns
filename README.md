@@ -9,6 +9,7 @@ Every pattern is the *smallest honest version* of a real architecture: minimal c
 | # | Pattern | Architecture | Deploy |
 |---|---------|-------------|--------|
 | 01 | [Lambda as an MCP Tool](./01-lambda-as-mcp-tool/) | Bedrock AgentCore Gateway → Lambda → DynamoDB | `cdk deploy` |
+| 02 | [S3-Lambda-mounted-Files](./02-S3-Lambda-mounted-Files) | API Gateway → Lambda  ⇄  S3 bucket (mounted as filesystem) | `cdk deploy` |
 
 _More patterns added as they ship._
 
@@ -32,4 +33,4 @@ Requirements: Node.js + AWS CDK CLI (`npm install -g aws-cdk`), Python 3.13, AWS
 ## Author
 
 Built by Kamran Moazim - AWS-native serverless & AI engineering.
-[X / @KamranMoazim](https://x.com/KamranMoazim) · [LinkedIn](https://www.linkedin.com/)
+[X / @KamranMoazim](https://x.com/KamranMoazim) · [LinkedIn](https://www.linkedin.com/in/kamran-moazim/)
