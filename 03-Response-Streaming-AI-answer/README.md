@@ -1,8 +1,8 @@
 # Response-Streaming AI Answer - FastAPI + Web Adapter, via API Gateway (CDK)
 
 ```
-Client → API Gateway REST (responseTransferMode=STREAM)
-       → Lambda (FastAPI + Web Adapter) → Bedrock converse_stream → tokens streamed back
+Client ↔ API Gateway REST (responseTransferMode=STREAM)
+       ↔ Lambda (FastAPI + Web Adapter) ↔ Bedrock converse_stream ↔ tokens back
 ```
 
 Python can't stream from a managed Lambda runtime, so the function is a FastAPI app
