@@ -11,6 +11,8 @@ adapter streams the same way whether it's behind a Function URL or API Gateway; 
 we use **API Gateway REST streaming** (`responseTransferMode: STREAM`)
 so the endpoint sits behind the normal REST front door.
 
+![Architecture](../docs/diagrams/3.30_Articles-03.drawio.png)
+
 ## Layout
 
 ```
@@ -85,7 +87,7 @@ curl -N -s -X POST "<AskUrl>" \
 ```
 
 Timestamps ticking upward = progressive streaming.
-![Architecture](./ss/output.gif)
+![ScreenShot](./ss/output.gif)
 
 ## Key gotchas
 
