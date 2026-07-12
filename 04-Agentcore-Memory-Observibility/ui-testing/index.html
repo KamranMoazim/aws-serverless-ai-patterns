@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Support Agent</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 16px;
+            color: #111
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0 0 12px
+        }
+
+        .bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: 13px
+        }
+
+        .bar input {
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 13px
+        }
+
+        .meta {
+            color: #999
+        }
+
+        #log {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            height: 60vh;
+            overflow: auto;
+            margin-bottom: 12px;
+            background: #fafafa
+        }
+
+        .msg {
+            margin: 8px 0;
+            white-space: pre-wrap;
+            line-height: 1.45
+        }
+
+        .user b {
+            color: #111
+        }
+
+        .agent b {
+            color: #0a7a4b
+        }
+
+        form {
+            display: flex;
+            gap: 8px
+        }
+
+        #prompt {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px
+        }
+
+        button {
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 6px;
+            background: #111;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: default
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Support Agent</h1>
+    <div class="bar">
+        <label>actor_id <input id="actor" type="text" value="cust-42"></label>
+        <span class="meta" id="session">session: (new)</span>
+    </div>
+    <div id="log"></div>
+    <form id="f">
+        <input id="prompt" type="text" placeholder="Ask about an order, or state a preference…" autocomplete="off">
+        <button id="send">Send</button>
+    </form>
+
+    <script>
+        // Your deployed ChatUrl:
+        const CHAT_URL = "https://98lq2eas05.execute-api.us-east-1.amazonaws.com/prod/chat";
+
+        let sessionId = null;
+        const log = document.getElementById('log');
+        const promptEl = document.getElementById('prompt');
+        const sendBtn = document.getElementById('send');
+        const actorEl = document.getElementById('actor');
+        const sessionEl = document.getElementById('session');
+
+        function add(cls, who, text) {
+            const d = document.createElement('div');
+            d.className = 'msg ' + cls;
+            d.innerHTML = '<b>' + who + '</b>';
+            d.appendChild(document.createTextNode(text));
+            log.appendChild(d);
+            log.scrollTop = log.scrollHeight;
+            return d;
+        }
+
+        // The agent may return plain text or SSE-style "data:" lines — handle both.
+        function clean(answer) {
+            if (typeof answer !== 'string') return String(answer ?? '');
+            if (answer.includes('data:')) {
+                return answer.split('\n')
+                    .filter(l => l.startsWith('data:'))
+                    .map(l => l.slice(5).trim())
+                    .join('');
+            }
+            return answer;
+        }
+
+        document.getElementById('f').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = promptEl.value.trim();
+            if (!prompt) return;
+
+            add('user', 'You: ', prompt);
+            promptEl.value = '';
+            sendBtn.disabled = true;
+            const bubble = add('agent', 'Agent: ', '…');
+
+            try {
+                const res = await fetch(CHAT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt,
+                        actor_id: actorEl.value.trim() || 'anonymous',
+                        session_id: sessionId
+                    })
+                });
+                const data = await res.json();
+                sessionId = data.session_id || sessionId;
+                sessionEl.textContent = 'session: ' + (sessionId || '(new)');
+                bubble.lastChild.nodeValue = clean(data.answer) || '(no answer)';
+            } catch (err) {
+                bubble.lastChild.nodeValue = '[error] ' + err.message;
+            } finally {
+                sendBtn.disabled = false;
+                promptEl.focus();
+            }
+        });
+    </script>
+</body>
+
+</html>
