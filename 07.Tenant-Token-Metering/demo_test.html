@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Gateway — test client</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 16px;
+            color: #111
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0 0 4px
+        }
+
+        .sub {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 12px
+        }
+
+        .cfg {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px 10px;
+            font-size: 12px;
+            margin-bottom: 12px
+        }
+
+        .cfg input {
+            padding: 5px 7px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 12px;
+            font-family: ui-monospace, monospace
+        }
+
+        #status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 99px;
+            display: inline-block;
+            margin-bottom: 10px;
+            background: #eee
+        }
+
+        #status.ok {
+            background: #d8f3e3;
+            color: #0a7a4b
+        }
+
+        #status.err {
+            background: #fde2e1;
+            color: #b3261e
+        }
+
+        #out {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 180px;
+            background: #fafafa;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            margin-bottom: 8px;
+            font-size: 14px
+        }
+
+        #meta {
+            font-size: 12px;
+            color: #666;
+            min-height: 18px;
+            margin-bottom: 10px
+        }
+
+        form {
+            display: flex;
+            gap: 8px
+        }
+
+        #prompt {
+            flex: 1;
+            padding: 9px;
+            border: 1px solid #ccc;
+            border-radius: 6px
+        }
+
+        button {
+            padding: 9px 15px;
+            border: 0;
+            border-radius: 6px;
+            background: #111;
+            color: #fff;
+            cursor: pointer
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: default
+        }
+    </style>
+</head>
+
+<body>
+    <h1>AI Gateway — test client</h1>
+    <div class="sub">Streams tokens over AppSync Events. Shows per-tenant usage + 429 when the cap is hit.</div>
+
+    <div class="cfg">
+        <label>Realtime endpoint</label><input id="rt" placeholder="xxx.appsync-realtime-api.us-east-1.amazonaws.com">
+        <label>HTTP endpoint</label><input id="http" placeholder="xxx.appsync-api.us-east-1.amazonaws.com">
+        <label>ID token (JWT)</label><input id="jwt" placeholder="eyJraWQi…">
+        <label>sub (user_id)</label><input id="sub" placeholder="uuid">
+    </div>
+    <button id="connect">Connect</button>
+    <span id="status">disconnected</span>
+
+    <div id="out"></div>
+    <div id="meta"></div>
+    <form id="f"><input id="prompt" placeholder="Ask something…" autocomplete="off" disabled>
+        <button id="send" disabled>Send</button>
+    </form>
+
+    <script src="config.js" onerror="void 0"></script>
+    <script>
+        const $ = id => document.getElementById(id);
+        const C = window.AI_GATEWAY_CONFIG || {};
+        $('rt').value = C.REALTIME_ENDPOINT || '';
+        $('http').value = C.HTTP_ENDPOINT || '';
+        $('jwt').value = C.ID_TOKEN || '';
+        $('sub').value = C.SUB || '';
+
+        let ws = null;
+        const b64url = o => btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const setStatus = (t, cls = '') => { $('status').textContent = t; $('status').className = cls; };
+
+        $('connect').onclick = () => {
+            const rt = $('rt').value.trim();
+            const http = $('http').value.trim();
+            const jwt = $('jwt').value.trim();
+            const sub = $('sub').value.trim();
+            if (!rt || !http || !jwt || !sub) return alert('Fill all four fields (run scripts/setup_user.sh).');
+
+            // AppSync WS subprotocol: auth travels as a base64url header in Sec-WebSocket-Protocol.
+            const auth = b64url({ host: http, Authorization: jwt });
+            ws = new WebSocket(`wss://${rt}/event/realtime`, ['aws-appsync-event-ws', `header-${auth}`]);
+
+            ws.onopen = () => { 
+                setStatus('connecting…'); 
+                ws.send(JSON.stringify({ 
+                    type: 'connection_init' 
+                })); 
+            };
+
+            ws.onmessage = (e) => {
+                const m = JSON.parse(e.data);
+                if (m.type === 'connection_ack') {
+                    setStatus('connected — subscribing…');
+                    ws.send(JSON.stringify({
+                        type: 'subscribe', 
+                        id: crypto.randomUUID(),
+                        channel: `/chat/${sub}/stream`,
+                        authorization: { host: http, Authorization: jwt }
+                    }));
+                }
+                else if (m.type === 'subscribe_success') {
+                    setStatus('subscribed ✓', 'ok');
+                    $('prompt').disabled = false; 
+                    $('send').disabled = false; 
+                    $('prompt').focus();
+                }
+                else if (m.type === 'data') {
+                    const ev = typeof m.event === 'string' ? JSON.parse(m.event) : m.event;
+                    if (ev.type === 'token') {
+                        $('out').textContent += ev.text;
+                    }
+                    if (ev.type === 'done') {
+                        $('meta').textContent = `✓ in ${ev.tokens_in} / out ${ev.tokens_out} tokens · $${ev.cost_usd} · ${ev.remaining} tokens remaining`;
+                        $('send').disabled = false;
+                    }
+                    if (ev.type === 'error') {                       // the 429 path
+                        $('out').textContent += `\n\n[${ev.code}] ${ev.message}`;
+                        $('meta').textContent = 'rate limited';
+                        $('send').disabled = false;
+                    }
+                }
+                else if (m.type === 'subscribe_error' || m.type === 'connection_error') {
+                    setStatus('error: ' + JSON.stringify(m.errors || m), 'err');
+                }
+            };
+
+            ws.onerror = () => setStatus('websocket error', 'err');
+            ws.onclose = () => { setStatus('disconnected', 'err'); $('prompt').disabled = true; $('send').disabled = true; };
+        };
+
+        $('f').onsubmit = async (e) => {
+            e.preventDefault();
+            const prompt = $('prompt').value.trim();
+            if (!prompt) return;
+            $('out').textContent = ''; 
+            $('meta').textContent = '…thinking'; 
+            $('send').disabled = true;
+            $('prompt').value = '';
+
+            // Publish the prompt over HTTP (Cognito auth) — the Lambda onPublish handler picks it up.
+            const res = await fetch(`https://${$('http').value.trim()}/event`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': $('jwt').value.trim() 
+                },
+                body: JSON.stringify({
+                    channel: `/chat/${$('sub').value.trim()}/prompt`,
+                    events: [
+                        JSON.stringify({ 
+                            prompt, 
+                            request_id: crypto.randomUUID() 
+                        })
+                    ]
+                })
+            });
+            if (!res.ok) {
+                $('meta').textContent = 'publish failed: ' + res.status + ' ' + (await res.text());
+                $('send').disabled = false;
+            }
+        };
+    </script>
+</body>
+
+</html>
