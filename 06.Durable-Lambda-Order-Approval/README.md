@@ -12,6 +12,7 @@ GET /approve → Completer Lambda → SendDurableExecutionCallbackSuccess → fn
 An order that pauses for a human "approve/reject" — without a Step Functions state
 machine and without paying for idle compute while it waits. The pause is a single
 `callback.result()` in ordinary sequential Python.
+![Arch](../docs/diagrams/6.30_Articles-06.drawio.png)
 
 ## Layout
 
