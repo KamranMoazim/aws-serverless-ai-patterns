@@ -1,0 +1,19 @@
+[
+  {
+    "name": "list_orders",
+    "description": "List orders for the caller's tenant. Use for 'show my orders' style questions.",
+    "inputSchema": {"type": "object", "properties": {}, "required": []}
+  },
+  {
+    "name": "issue_refund",
+    "description": "Issue a refund for an order. Privileged: only admins, and only up to the policy limit.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "order_id": {"type": "string", "description": "The order to refund, e.g. 'A-1'."},
+        "amount": {"type": "integer", "description": "Refund amount in whole USD."}
+      },
+      "required": ["order_id", "amount"]
+    }
+  }
+]
