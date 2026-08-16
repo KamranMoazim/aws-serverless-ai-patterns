@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>S3 Vectors RAG - Demo Test</title>
+    <style>
+        body {
+            font: 15px/1.5 -apple-system, system-ui, sans-serif;
+            max-width: 760px;
+            margin: 40px auto;
+            padding: 0 16px;
+            color: #111
+        }
+
+        input,
+        textarea,
+        button {
+            font: inherit
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box
+        }
+
+        button {
+            padding: 8px 16px;
+            border: 0;
+            border-radius: 6px;
+            background: #111;
+            color: #fff;
+            cursor: pointer
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: default
+        }
+
+        label {
+            display: block;
+            margin: 14px 0 4px;
+            font-weight: 600;
+            font-size: 13px
+        }
+
+        #out {
+            white-space: pre-wrap;
+            background: #f6f6f6;
+            border-radius: 6px;
+            padding: 14px;
+            margin-top: 16px;
+            min-height: 80px
+        }
+
+        #status {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px
+        }
+    </style>
+</head>
+
+<body>
+    <h2>S3 Vectors RAG - Demo Test</h2>
+
+    <label>Function URL</label>
+    <input id="url" value="https://ncfwheri3un4dquyv7a3mx74xm0jrpin.lambda-url.us-east-1.on.aws/">
+
+    <label>Path (e.g. /query or /ask)</label>
+    <input id="path" value="/ask">
+
+    <label>Question</label>
+    <textarea id="q" rows="3">What is this corpus about?</textarea>
+
+    <p style="margin-top:14px"><button id="go">Ask</button></p>
+
+    <div id="status"></div>
+    <div id="out"></div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+
+        $('go').onclick = async () => {
+            const btn = $('go'), out = $('out'), st = $('status');
+            out.textContent = ''; st.textContent = 'connecting…'; btn.disabled = true;
+
+            const base = $('url').value.replace(/\/$/, '');
+            const url = base + $('path').value;
+            const t0 = performance.now();
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: $('q').value })
+                });
+
+                st.textContent = 'HTTP ' + res.status + ' - streaming…';
+                if (!res.ok) { out.textContent = await res.text(); return; }
+
+                const reader = res.body.getReader();
+                const dec = new TextDecoder();
+                let first = null;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (first === null) { first = performance.now() - t0; }
+                    out.textContent += dec.decode(value, { stream: true });
+                }
+                st.textContent = `done - first byte ${Math.round(first)}ms, total ${Math.round(performance.now() - t0)}ms`;
+            } catch (e) {
+                st.textContent = 'error';
+                out.textContent = e.message + '\n\n(If this is a CORS error, add CORS to the Function URL or use the curl fallback.)';
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+
+</html>

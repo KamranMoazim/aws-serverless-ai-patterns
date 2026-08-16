@@ -1,0 +1,64 @@
+Amazon S3 Vectors - Internal Engineering Notes
+
+Overview
+S3 Vectors is a bucket type in Amazon S3 that stores and queries vector embeddings
+natively. There is no cluster to provision, no nodes to size, and nothing running
+when the index is idle. Pricing follows the familiar S3 model of storage plus
+requests, which is roughly 90 percent cheaper than running a managed vector
+cluster for the same corpus.
+
+Index configuration
+An index is created with a fixed data type, dimension, and distance metric. Our
+production index uses float32, dimension 1024, and cosine distance. The dimension
+must match the embedding model exactly. Amazon Titan Text Embeddings V2 emits
+1024 floats, which is why the index was created at 1024. The dimension cannot be
+changed after creation; changing embedding models means rebuilding the index.
+
+Metadata rules
+Metadata attached to a vector is either filterable or non-filterable. Filterable
+keys are capped in number and priced, so large payloads do not belong there. The
+chunk body is stored under the key raw_text and declared in
+non_filterable_metadata_keys. It is still returned when returnMetadata is true -
+it simply cannot be used in a filter expression.
+
+Ingestion pipeline
+Documents land in the docs bucket. EventBridge emits an Object Created event that
+starts a Step Functions state machine. The state machine uses a Distributed Map
+whose ItemReader lists the S3 prefix directly, so no glue Lambda is needed to
+enumerate keys and no state payload approaches the 256KB ceiling. Each child
+invocation handles exactly one object: read, chunk, embed, and write. Concurrency
+is capped at 1000, retries are per-child with exponential backoff, and a tolerated
+failure percentage of 5 keeps one bad file from killing the whole run.
+
+Chunking and idempotency
+Documents are split into 1000 character chunks with 150 characters of overlap.
+Each vector key is formed as the object key followed by a hash and the chunk
+index, for example report.txt#3. Because the key is deterministic, re-ingesting a
+document overwrites its previous chunks instead of duplicating them. No separate
+deduplication step is required.
+
+Query path
+The question is embedded with the same Titan model used at ingest. Using a
+different model on the query side does not raise an error; it silently returns
+meaningless neighbours, which is the most expensive kind of bug to find. The kNN
+call returns the top 5 matches with metadata and distance. Those chunks are
+placed in the prompt, and the model is instructed to cite sources in the form
+[file#chunk] and to say plainly when the answer is not present in the context.
+
+Latency characteristics
+Retrieval is sub-second, not sub-millisecond. Typical retrieval latency is around
+100 milliseconds. For document question answering, where generation itself takes
+about a second, that cost is invisible. Workloads needing single-digit
+millisecond p99 under sustained high QPS are still better served by a provisioned
+cluster. That is the honest boundary of this pattern.
+
+Operational notes
+Vectors cannot be inserted or queried from the AWS console; both operations are
+SDK and CLI only. PutVectors is batched and calls should stay at or below 100
+vectors each. The dominant cost in the system is the embedding pass at ingest and
+the generation at query time - the vector store itself is a rounding error.
+
+Migration path
+S3 Vectors integrates with Bedrock Knowledge Bases and with OpenSearch, so a
+project can start on object-storage economics and move hot indexes to a
+provisioned engine later without a rewrite.
