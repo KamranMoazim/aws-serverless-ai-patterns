@@ -1,0 +1,4 @@
+strands-agents[otel]
+bedrock-agentcore
+psycopg[binary]
+boto3
