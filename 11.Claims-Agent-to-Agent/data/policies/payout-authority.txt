@@ -1,0 +1,7 @@
+Section 12.1 - Payout Authority and Human Approval
+Settlements below 5,000 USD may be released automatically once coverage is
+confirmed and the fraud risk level is LOW or MEDIUM. Settlements of 5,000 USD or
+more require documented approval by an authorized human adjuster before funds are
+released. Any claim carrying a HIGH fraud risk level must not be paid regardless
+of amount, and must be routed to the investigations team. Automated systems may
+recommend a settlement but must not release funds above the automatic threshold.

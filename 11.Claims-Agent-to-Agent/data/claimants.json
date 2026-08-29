@@ -1,0 +1,20 @@
+[
+  {
+    "claimant_id": "C-77",
+    "claim_count": 1,
+    "flagged_count": 0,
+    "note": "Clean history. Scores LOW - the happy path."
+  },
+  {
+    "claimant_id": "C-92",
+    "claim_count": 4,
+    "flagged_count": 1,
+    "note": "Four priors and one previously flagged. With a 24,500 amount this scores HIGH, so the payout must be refused."
+  },
+  {
+    "claimant_id": "C-13",
+    "claim_count": 2,
+    "flagged_count": 0,
+    "note": "Two priors, small claim. Scores LOW and sits under the 5,000 auto-approve threshold."
+  }
+]

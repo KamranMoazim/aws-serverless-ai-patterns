@@ -1,0 +1,6 @@
+Section 2.5 - Deductibles and Settlement Arithmetic
+Every covered loss is settled net of the deductible stated on the policy
+schedule for that peril. The deductible is subtracted from the approved loss
+amount, not from the amount requested by the claimant. Where a claimant requests
+an amount exceeding the approved estimate, settlement is capped at the approved
+estimate. Deductibles are applied once per incident, not per damaged item.

@@ -1,0 +1,47 @@
+version: 0.2
+
+# Runs on CodeBuild ARM_CONTAINER (Graviton), so linux/arm64 is the host
+# architecture - no QEMU, unlike building on an x86 laptop. The classic docker
+# builder is used deliberately: it pushes a plain Docker v2 manifest, which is
+# what AgentCore Runtime accepts. BuildKit's registry exporter can attach
+# provenance/SBOM attestations, and AgentCore rejects that as not a plain
+# arm64 manifest - it surfaces as a silent "image pull failed".
+env:
+  variables:
+    SLUG: claims-a2a
+    AGENT: all
+    IMAGE_TAG: latest
+
+phases:
+  pre_build:
+    commands:
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+      # The Dockerfiles pull their base from public.ecr.aws, which rate-limits anonymous pulls.
+      - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+      - if [ "$AGENT" = "all" ]; then TARGETS="orchestrator intake policy fraud payout"; else TARGETS="$AGENT"; fi
+      - 'echo "targets: $TARGETS   tag: $IMAGE_TAG"'
+      - uname -m
+
+  build:
+    commands:
+      - |
+        for agent in $TARGETS; do
+          repo="${SLUG}-${agent}"
+          if ! aws ecr describe-repositories --repository-names "$repo" --region "$AWS_REGION" >/dev/null 2>&1; then
+            echo "creating repo $repo"
+            aws ecr create-repository \
+              --repository-name "$repo" \
+              --region "$AWS_REGION" \
+              --image-scanning-configuration scanOnPush=true >/dev/null
+          fi
+          echo "=== building ${repo}:${IMAGE_TAG} from agents/${agent}"
+          docker build --platform linux/arm64 -t "${REGISTRY}/${repo}:${IMAGE_TAG}" "agents/${agent}"
+          docker push "${REGISTRY}/${repo}:${IMAGE_TAG}"
+          echo "=== pushed ${repo}:${IMAGE_TAG}"
+        done
+
+  post_build:
+    commands:
+      - 'echo "done. tag $IMAGE_TAG pushed for: $TARGETS"'

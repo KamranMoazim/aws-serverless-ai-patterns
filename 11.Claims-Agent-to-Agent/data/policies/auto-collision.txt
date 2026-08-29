@@ -1,0 +1,8 @@
+Section 4.1 - Collision Coverage (Auto)
+Northwind Mutual covers direct and accidental damage to the insured vehicle
+arising from collision with another vehicle or a fixed object, including
+guardrails, barriers and road furniture. Coverage applies whether or not the
+insured is at fault. Payment is the lesser of the repair estimate from an
+approved shop or the actual cash value of the vehicle, less the collision
+deductible stated on the policy schedule. Single-vehicle collisions caused by
+road conditions, including wet or icy surfaces, are covered under this section.

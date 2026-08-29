@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claims A2A - demo console</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --ink: #16191d; --muted: #5c6470;
+    --line: #dfe3e8; --accent: #2f6fed; --ok: #1a7f52; --warn: #b45309; --bad: #b42318;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a; --panel: #1c2024; --ink: #e8eaed; --muted: #9aa4b2;
+      --line: #2c3238; --accent: #6f9bff; --ok: #4ec38a; --warn: #e0a33e; --bad: #f2837b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 24px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase;
+          letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
+  input[type=text], textarea {
+    width: 100%; padding: 9px 11px; font-family: var(--mono); font-size: 13px;
+    color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  }
+  textarea { min-height: 78px; resize: vertical; }
+  .presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .preset { text-align: left; padding: 10px 12px; background: var(--bg); color: var(--ink);
+            border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font: inherit; }
+  .preset:hover { border-color: var(--accent); }
+  .preset[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .preset b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+  .preset span { font-size: 12px; color: var(--muted); }
+  button.run { margin-top: 12px; padding: 10px 18px; font: 600 14px/1 inherit; color: #fff;
+               background: var(--accent); border: 0; border-radius: 7px; cursor: pointer; }
+  button.run:disabled { opacity: .55; cursor: default; }
+  .status { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); margin-top: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.run { background: var(--warn); animation: pulse 1s infinite; }
+  .dot.done { background: var(--ok); }
+  .dot.fail { background: var(--bad); }
+  @keyframes pulse { 50% { opacity: .25; } }
+  .answer { white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
+  .answer h2 { font-size: 15px; margin: 14px 0 6px; }
+  .meta { font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+          border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--bg);
+         border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Claims A2A demo console</h1>
+  <p class="sub">Posts a claim to the orchestrator, then polls for the result. The four
+  specialists run as separate A2A services, so a full claim takes roughly 40 seconds.</p>
+
+  <div class="card">
+    <label for="url">Claim endpoint (ClaimUrl stack output)</label>
+    <input type="text" id="url" placeholder="https://xxxx.execute-api.us-east-1.amazonaws.com/prod/claim">
+  </div>
+
+  <div class="card">
+    <label>Scenarios (from data/, loaded by scripts/seed_demo_data.py)</label>
+    <div class="presets" id="presets"></div>
+    <label for="prompt">Prompt</label>
+    <textarea id="prompt"></textarea>
+    <button class="run" id="run">Run claim</button>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">idle</span></div>
+  </div>
+
+  <div class="card" id="resultCard" hidden>
+    <label>Result</label>
+    <div class="answer" id="answer"></div>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <p class="note">Serve this over HTTP if your browser blocks <code>file://</code> requests:
+  <code>python3 -m http.server 8000</code> then open
+  <code>http://localhost:8000/demo_test.html</code>.</p>
+</div>
+
+<script>
+const PRESETS = [
+  {
+    name: "C-77 - clean, needs approval",
+    hint: "Covered collision, LOW risk, $8,200 so it suspends for a human.",
+    prompt: "Process the claim at claims/claim-C-77.pdf. Read it with intake, confirm coverage with policy, score fraud risk, and if acceptable start the payout. Give me a short decision summary."
+  },
+  {
+    name: "C-92 - high fraud risk",
+    hint: "Theft, $24,500, 4 priors + 1 flagged. Scores HIGH, must be refused.",
+    prompt: "Process the claim at claims/claim-C-92.pdf. Read it with intake, check coverage with policy, score fraud risk, and decide whether to pay. Short summary."
+  },
+  {
+    name: "C-13 - auto-pays",
+    hint: "Water damage, $3,150, under the $5,000 threshold so no human needed.",
+    prompt: "Process the claim at claims/claim-C-13.pdf. Read it with intake, confirm coverage with policy, score fraud risk, and start the payout if acceptable. Short summary."
+  },
+  {
+    name: "Policy agent only",
+    hint: "One A2A hop. Quotes clauses straight out of the S3 Vectors index.",
+    prompt: "Ask the policy agent which clauses cover theft of a vehicle from a long-stay car park, and how a total loss is settled. Quote them."
+  },
+  {
+    name: "Fraud agent only",
+    hint: "One A2A hop. The score comes from Lambda rules, not the model.",
+    prompt: "Ask the fraud agent to score claimant C-92 for an amount of 24500, then explain the signals it used."
+  },
+  {
+    name: "Intake agent only",
+    hint: "One A2A hop. Textract reads the claim PDF out of S3.",
+    prompt: "Ask the intake agent to extract the fields from claims/claim-C-13.pdf and list them."
+  }
+];
+
+const $ = id => document.getElementById(id);
+const store = key => { try { return localStorage.getItem(key) || ""; } catch { return ""; } };
+
+$("url").value = store("claimUrl");
+$("url").addEventListener("change", e => {
+  try { localStorage.setItem("claimUrl", e.target.value.trim()); } catch {}
+});
+
+PRESETS.forEach((preset, index) => {
+  const button = document.createElement("button");
+  button.className = "preset";
+  button.type = "button";
+  button.setAttribute("aria-pressed", "false");
+  button.innerHTML = "<b></b><span></span>";
+  button.querySelector("b").textContent = preset.name;
+  button.querySelector("span").textContent = preset.hint;
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".preset").forEach(other => other.setAttribute("aria-pressed", "false"));
+    button.setAttribute("aria-pressed", "true");
+    $("prompt").value = preset.prompt;
+  });
+  $("presets").appendChild(button);
+  if (index === 0) { button.click(); }
+});
+
+function setStatus(text, state) {
+  $("statusText").textContent = text;
+  $("dot").className = "dot" + (state ? " " + state : "");
+}
+
+/* The agents answer in markdown. Escape first, then allow a small safe subset. */
+function render(text) {
+  const escaped = text
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return escaped
+    .replace(/^#{1,6}\s*(.+)$/gm, "<h2>$1</h2>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
+async function run() {
+  const base = $("url").value.trim().replace(/\/+$/, "");
+  const prompt = $("prompt").value.trim();
+  if (!base) { setStatus("set the claim endpoint first", "fail"); return; }
+  if (!prompt) { setStatus("prompt is empty", "fail"); return; }
+
+  $("run").disabled = true;
+  $("resultCard").hidden = true;
+  const started = Date.now();
+  const tick = () => setStatus(`running - ${Math.round((Date.now() - started) / 1000)}s elapsed`, "run");
+  tick();
+  const timer = setInterval(tick, 1000);
+
+  try {
+    const post = await fetch(base, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
+    if (!post.ok) { throw new Error(`POST ${post.status}: ${(await post.text()).slice(0, 300)}`); }
+    const { job_id: jobId } = await post.json();
+
+    /* Poll until the worker records a terminal status. */
+    for (let attempt = 0; attempt < 90; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const poll = await fetch(`${base}/${jobId}`);
+      if (poll.status === 404) { continue; }
+      if (!poll.ok) { throw new Error(`GET ${poll.status}`); }
+      const job = await poll.json();
+      if (job.status === "RUNNING") { continue; }
+
+      clearInterval(timer);
+      setStatus(job.status === "DONE" ? "done" : "failed",
+                job.status === "DONE" ? "done" : "fail");
+      $("answer").innerHTML = render(job.answer || "(empty answer)");
+      $("meta").textContent =
+        `job ${job.job_id}  |  status ${job.status}  |  ${job.elapsed_seconds}s in the worker  |  session ${job.session_id}`;
+      $("resultCard").hidden = false;
+      return;
+    }
+    throw new Error("timed out waiting for the job");
+  } catch (error) {
+    clearInterval(timer);
+    setStatus(String(error.message || error), "fail");
+    $("answer").textContent =
+      "If this is a CORS or network error, check that the stack deployed the OPTIONS method " +
+      "on /claim and that the endpoint URL is right.";
+    $("meta").textContent = "";
+    $("resultCard").hidden = false;
+  } finally {
+    clearInterval(timer);
+    $("run").disabled = false;
+  }
+}
+
+$("run").addEventListener("click", run);
+</script>
+</body>
+</html>

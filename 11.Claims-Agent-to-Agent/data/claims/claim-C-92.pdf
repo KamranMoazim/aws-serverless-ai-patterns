@@ -1,0 +1,68 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 667 >>
+stream
+BT
+/F1 11 Tf
+14 TL
+1 0 0 1 56 760 Tm
+(AUTO CLAIM FORM - Northwind Mutual) Tj
+T*
+() Tj
+T*
+(Claim ID: CLM-2026-0092) Tj
+T*
+(Claimant ID: C-92) Tj
+T*
+(Claimant Name: Rowan Alcott) Tj
+T*
+(Claimant Email: rowan.alcott@example.com) Tj
+T*
+(Policy Number: POL-AUTO-8890) Tj
+T*
+(Date of Loss: 2026-08-02) Tj
+T*
+(Loss Type: Theft - total loss) Tj
+T*
+(Description: Vehicle reported stolen from a long-stay car park.) Tj
+T*
+(  Not recovered. Replacement value claimed.) Tj
+T*
+(Repair Estimate: N/A - total loss) Tj
+T*
+(Deductible: 1000.00 USD) Tj
+T*
+(Amount Requested: 24500.00 USD) Tj
+T*
+(Police Report Filed: Yes \(ref 2026-08-02-441\)) Tj
+T*
+(Injuries Reported: None) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1029
+%%EOF
