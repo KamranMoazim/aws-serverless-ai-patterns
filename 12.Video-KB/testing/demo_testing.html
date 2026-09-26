@@ -1,0 +1,411 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Video KB - Demo Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+    <style>
+      body {
+        font:
+          15px/1.5 -apple-system,
+          system-ui,
+          sans-serif;
+        max-width: 1040px;
+        margin: 40px auto;
+        padding: 0 16px;
+        color: #111;
+      }
+
+      input,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+      }
+
+      button {
+        padding: 8px 16px;
+        border: 0;
+        border-radius: 6px;
+        background: #111;
+        color: #fff;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      label {
+        display: block;
+        margin: 14px 0 4px;
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      #status {
+        font-size: 13px;
+        color: #666;
+        margin-top: 8px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+
+      .chip {
+        background: #eee;
+        color: #111;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .chip:hover {
+        background: #ddd;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-top: 20px;
+      }
+
+      @media (min-width: 860px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      video {
+        width: 100%;
+        background: #000;
+        border-radius: 6px;
+        display: block;
+      }
+
+      #playing {
+        font-size: 13px;
+        color: #666;
+        margin-top: 6px;
+        min-height: 20px;
+      }
+
+      #answer {
+        white-space: pre-wrap;
+        background: #f6f6f6;
+        border-radius: 6px;
+        padding: 14px;
+        margin-top: 12px;
+      }
+
+      .moment {
+        display: flex;
+        gap: 12px;
+        border: 1px solid #e2e2e2;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        background: #fff;
+      }
+
+      .moment:hover {
+        border-color: #111;
+      }
+
+      .moment.active {
+        border-color: #111;
+        background: #f6f6f6;
+      }
+
+      .moment img {
+        width: 128px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 4px;
+        background: #ddd;
+        flex: none;
+      }
+
+      .moment .meta {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+      }
+
+      .moment .snippet {
+        font-size: 13px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .stamp {
+        font-weight: 600;
+        color: #111;
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #666;
+      }
+
+      code {
+        background: #f0f0f0;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+
+      .warn {
+        background: #fff8e1;
+        border: 1px solid #f0d68a;
+        border-radius: 6px;
+        padding: 10px 14px;
+        font-size: 13px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Video KB - Demo Test</h2>
+    <p style="color: #666">
+      Ask a question, get the exact second. Click any moment to play the video
+      from there.
+    </p>
+
+    <div id="filewarn" class="warn" hidden>
+      Opened from <code>file://</code>. Search will work, but video playback
+      will not: Chrome sends no <code>Origin</code> header from a file page, so
+      CloudFront withholds the CORS header hls.js needs. Run
+      <code>./serve.sh</code> and use
+      <a href="http://localhost:8000/demo_testing.html"
+        >http://localhost:8000/demo_testing.html</a
+      >.
+    </div>
+
+    <label>Search URL (the stack's SearchUrl output)</label>
+    <input
+      id="url"
+      placeholder="https://xxxx.execute-api.us-east-1.amazonaws.com/prod/search"
+    />
+
+    <label>Question</label>
+    <textarea id="q" rows="2">
+why did churn drop after the pricing change?</textarea>
+
+    <div class="chips" id="chips"></div>
+
+    <p style="margin-top: 14px"><button id="go">Search</button></p>
+    <div id="status"></div>
+
+    <div class="grid">
+      <div>
+        <h3>Player</h3>
+        <video id="player" controls playsinline></video>
+        <div id="playing"></div>
+        <div id="answer"></div>
+      </div>
+      <div>
+        <h3>Moments</h3>
+        <div id="moments" style="color: #666; font-size: 13px">
+          No results yet.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const SAMPLES = [
+        "why did churn drop after the pricing change?",
+        "how long did the outage during the cutover last?",
+        "what is our time to hire?",
+        "how much did read latency improve?",
+        "what are we building next quarter?",
+        "what is the refund policy?",
+      ];
+
+      const $ = (id) => document.getElementById(id);
+      const mmss = (s) =>
+        Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+
+      let hls = null;
+
+      SAMPLES.forEach((text) => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = text;
+        chip.onclick = () => {
+          $("q").value = text;
+          search();
+        };
+        $("chips").appendChild(chip);
+      });
+
+      function play(clipUrl, videoId) {
+        const [src, frag] = clipUrl.split("#t=");
+        const at = parseFloat(frag || "0");
+        const video = $("player");
+
+        const seek = () => {
+          video.currentTime = at;
+          video.play().catch(() => {});
+        };
+
+        $("playing").textContent = videoId + " from " + mmss(at);
+
+        if (hls) {
+          hls.destroy();
+          hls = null;
+        }
+
+        /*
+         * hls.js first, native second. Chrome answers "maybe" to canPlayType for
+         * HLS and then fails to decode it, so sniffing the MIME type picks the
+         * wrong branch; Hls.isSupported() is the honest check. Safari reports MSE
+         * unsupported and takes the native path.
+         *
+         * Neither path honors the #t= fragment, so the seek is done by hand once
+         * the media is ready.
+         */
+        if (window.Hls && window.Hls.isSupported()) {
+          hls = new window.Hls();
+          hls.on(window.Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(src));
+          hls.on(window.Hls.Events.MANIFEST_PARSED, seek);
+          hls.on(window.Hls.Events.ERROR, (_, data) => {
+            if (data.fatal) {
+              $("playing").textContent =
+                "playback error: " + data.type + " / " + data.details;
+            }
+          });
+          hls.attachMedia(video);
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = src;
+          video.addEventListener("loadedmetadata", seek, { once: true });
+          video.addEventListener(
+            "error",
+            () => {
+              $("playing").textContent = "this browser could not play " + src;
+            },
+            { once: true },
+          );
+        } else {
+          $("playing").textContent =
+            "This browser cannot play HLS. Open " + clipUrl;
+        }
+      }
+
+      function render(data) {
+        $("answer").textContent = data.answer || "";
+        const box = $("moments");
+        box.innerHTML = "";
+
+        if (!data.moments || !data.moments.length) {
+          box.textContent = "No moments matched.";
+          return;
+        }
+
+        data.moments.forEach((moment, i) => {
+          const card = document.createElement("div");
+          card.className = "moment";
+          card.innerHTML =
+            '<img src="' +
+            moment.thumbnail +
+            '" alt="" onerror="this.style.visibility=\'hidden\'">' +
+            '<div><div class="meta"><span class="stamp">' +
+            mmss(moment.start) +
+            " - " +
+            mmss(moment.end) +
+            "</span> &middot; " +
+            moment.video_id +
+            " &middot; distance " +
+            Number(moment.distance).toFixed(3) +
+            "</div>" +
+            '<div class="snippet">' +
+            moment.text.replace(/</g, "&lt;") +
+            "</div></div>";
+          card.onclick = () => {
+            document
+              .querySelectorAll(".moment")
+              .forEach((el) => el.classList.remove("active"));
+            card.classList.add("active");
+            play(moment.clip_url, moment.video_id);
+          };
+          box.appendChild(card);
+          if (i === 0) {
+            card.classList.add("active");
+            play(moment.clip_url, moment.video_id);
+          }
+        });
+      }
+
+      async function search() {
+        const btn = $("go");
+        btn.disabled = true;
+        $("status").textContent = "searching...";
+        $("answer").textContent = "";
+        const t0 = performance.now();
+
+        try {
+          const res = await fetch($("url").value, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: $("q").value }),
+          });
+          const body = await res.text();
+          $("status").textContent =
+            "HTTP " +
+            res.status +
+            " - " +
+            Math.round(performance.now() - t0) +
+            "ms";
+
+          if (!res.ok) {
+            $("answer").textContent = body;
+            $("moments").textContent = "No results.";
+            return;
+          }
+          render(JSON.parse(body));
+        } catch (e) {
+          $("status").textContent = "error";
+          $("answer").textContent =
+            e.message +
+            "\n\n(A CORS failure here means the API stage lost its CORS config.)";
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      if (location.protocol === "file:") {
+        $("filewarn").hidden = false;
+      }
+
+      $("go").onclick = search;
+      $("q").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          search();
+        }
+      });
+    </script>
+  </body>
+</html>

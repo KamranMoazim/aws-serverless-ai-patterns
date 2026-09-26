@@ -1,0 +1,41 @@
+{
+    "answer": "According to the transcript, churn dropped after the pricing change because:\n\n\"The reason churn dropped is that small teams are no longer punished for adding a colleague. Under the old model, every new person was another line on the invoice, so accounts would quietly share logins instead of growing. Under usage-based pricing, growth in headcount costs the customer nothing, and we capture value only when they actually get value.\" [talk @45s]",
+    "moments": [
+        {
+            "video_id": "talk",
+            "start": 45,
+            "end": 91,
+            "text": "and this is the big one . We moved away from proceed licensing to a usage-based model in March . Customers now pay for the number of documents they process . Rather than for the number of people on the account , revenue went up 19% in the first two months , and churn dropped by almost half . The reason churn dropped is that small teams are no longer punished for adding a colleague . Under the old model , every new person was another line on the invoice , so accounts would quietly share logins instead of growing . Under usage-based pricing . Growth in headcount costs the customer nothing , and we capture value only when they actually get value . Third , the database migration . We finished moving off the single poster's instance onto a sharded cluster in June . Read latency at the 99th percentile",
+            "distance": 0.4649187922477722,
+            "clip_url": "https://domewpmg6gpcv.cloudfront.net/talk/hls.m3u8#t=45",
+            "thumbnail": "https://domewpmg6gpcv.cloudfront.net/talk/thumb.0000001.jpg"
+        },
+        {
+            "video_id": "talk",
+            "start": 0,
+            "end": 45,
+            "text": "Welcome to the quarterly engineering review . Today I will cover 5 areas hiring , pricing , the database migration , our incident record , and what we are planning for next quarter . Let us start with hiring . We closed the quarter with 14 engineers on staff . We plan to add 6 more before the end of the year , mostly on the platform team . Recruiting has been slow because the market for infrastructure people is extremely competitive right now . We lost . Two candidates to larger companies purely on compensation . Our average time to hire is now 62 days , which is up from 40 days last year . To fix this , we are raising the baseband for senior engineers , and we are opening a second office , so we are not competing only in one city . Now let us talk about pricing",
+            "distance": 0.7304103374481201,
+            "clip_url": "https://domewpmg6gpcv.cloudfront.net/talk/hls.m3u8#t=0",
+            "thumbnail": "https://domewpmg6gpcv.cloudfront.net/talk/thumb.0000000.jpg"
+        },
+        {
+            "video_id": "talk",
+            "start": 91,
+            "end": 137,
+            "text": "fell from 400 milliseconds down to about 60 milliseconds . Right throughput roughly tripled . The migration took 11 weeks , which was 3 weeks longer than we estimated , and almost all of the overrun went into backfilling old Rosen , verifying that the shard keys were balanced . Fourth incidents . Had 4 incidents this quarter . One of them happened during the database cutover . It lasted 11 minutes and affected roughly 2% of requests . The other 3 were much smaller , a bad deployment that we rolled back in 6 minutes , an expired certificate on an internal service , and a third party payment provider outage that was entirely outside our control . Our overall availability for the quarter was 99.96% , which is above our target . Finally , Next",
+            "distance": 0.8067541122436523,
+            "clip_url": "https://domewpmg6gpcv.cloudfront.net/talk/hls.m3u8#t=91",
+            "thumbnail": "https://domewpmg6gpcv.cloudfront.net/talk/thumb.0000003.jpg"
+        },
+        {
+            "video_id": "talk",
+            "start": 137,
+            "end": 164,
+            "text": "quarter , the main project is multi-region failover . Right now everything runs in a single region , and a regional outage would take us down completely . We are also going to invest in the search experience because it is the single most common complaint in our support tickets , and we will finish the security audit that we started in May , which should close out before the end of November . That is everything . Thank you all for a very strong quarter , and I am happy to take questions .",
+            "distance": 0.9306395053863525,
+            "clip_url": "https://domewpmg6gpcv.cloudfront.net/talk/hls.m3u8#t=137",
+            "thumbnail": "https://domewpmg6gpcv.cloudfront.net/talk/thumb.0000004.jpg"
+        }
+    ]
+}

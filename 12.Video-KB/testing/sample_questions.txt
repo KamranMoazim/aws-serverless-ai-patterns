@@ -1,0 +1,13 @@
+# Questions the sample talk.mp4 can answer, with the moment each one should land on.
+# The point of the test is the timestamp, not just the text.
+
+why did churn drop after the pricing change?          -> ~45s   (pricing section)
+how long did the outage during the cutover last?      -> ~91s   (incidents section)
+what is our time to hire?                             -> ~0s    (hiring section)
+how much did read latency improve?                    -> ~91s   (migration section)
+what are we building next quarter?                    -> ~137s  (roadmap section)
+how many engineers do we have?                        -> ~0s    (hiring section)
+what was our availability this quarter?               -> ~91s   (incidents section)
+
+# A question the corpus cannot answer - the API should say so rather than invent:
+what is the refund policy?
